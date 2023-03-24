@@ -1,5 +1,2 @@
 # Bazel build files
-bazel-bin/
-bazel-out/
-bazel-testlogs/
-bazel-tuiirc/
+/bazel-*
