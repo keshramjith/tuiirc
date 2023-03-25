@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"os"
@@ -11,13 +12,17 @@ type model struct {
 	username        string
 	ircChatroomName string
 	answerField     textinput.Model
+	spinner         spinner.Model
+	isInputDone     bool
 }
 
 func New() *model {
 	answerField := textinput.New()
 	answerField.Focus()
 	answerField.Width = 20
-	return &model{answerField: answerField}
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	return &model{answerField: answerField, spinner: s, isInputDone: false}
 }
 
 func (m model) Init() tea.Cmd {
@@ -29,7 +34,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c", "d":
 			return m, tea.Quit
 		case "enter":
 			if m.username == "" {
@@ -40,25 +45,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.ircChatroomName == "" {
 				m.ircChatroomName = m.answerField.Value()
 				m.answerField.Reset()
-				return m, cmd
+				m.isInputDone = true
+				return m, spinner.Tick
 			}
 		}
 	}
 	m.answerField, cmd = m.answerField.Update(msg)
+	m.spinner, cmd = m.spinner.Update(msg)
 	return m, cmd
 }
 
 func (m model) View() string {
 	s := ""
-	if m.username == "" {
-		return fmt.Sprintf("Enter a username \n %s", m.answerField.View())
+	if !m.isInputDone {
+		if m.username == "" {
+			return fmt.Sprintf("Enter a username \n %s", m.answerField.View())
+		}
+		if m.ircChatroomName == "" {
+			return fmt.Sprintf("Username: %s\nEnter a chatroom name \n %s", m.username, m.answerField.View())
+		}
 	}
-	s += fmt.Sprintf("Username: %s\n", m.username)
-	if m.ircChatroomName == "" {
-		return fmt.Sprintf("Enter a chatroom name \n %s", m.answerField.View())
-	}
-	s += fmt.Sprintf("Chatroom: %s\n", m.ircChatroomName)
-	s += "Press q to quit"
+	s += fmt.Sprintf("%s %s connecting to %s\n", m.spinner.View(), m.username, m.ircChatroomName)
+	s += "Press d to disconnect"
 	return s
 }
 
