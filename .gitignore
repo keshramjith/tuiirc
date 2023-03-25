@@ -1,2 +1,5 @@
 # Bazel build files
 /bazel-*
+
+tuiirc-client/bazel-*
+tuiirc-server/bazel-*
