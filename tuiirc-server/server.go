@@ -21,5 +21,18 @@ func main() {
 		return c.SendString(string(jsonx))
 	})
 
+	app.Post("/", func(c *fiber.Ctx) error {
+		msgFromClient := struct {
+			Msg string `json:"Msg"`
+		}{}
+		if err := c.BodyParser(&msgFromClient); err != nil {
+			return err
+		}
+		jsonBody := struct {
+			Msg string `json:"Msg"`
+		}{Msg: "Hello from server"}
+		return c.JSON(jsonBody)
+	})
+
 	app.Listen(":3000")
 }

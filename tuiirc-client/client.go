@@ -1,12 +1,10 @@
 package main
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -14,8 +12,7 @@ import (
 )
 
 type response struct {
-	HttpStatusCode int
-	Msg            string
+	Msg string `json:"Msg"`
 }
 
 type model struct {
@@ -40,23 +37,15 @@ func (m model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (m model) connectToServer() tea.Cmd {
+func (m model) postToServer() tea.Cmd {
 	return func() tea.Msg {
-		time.Sleep(1000)
-		res, err := http.Get("http://localhost:3000")
+		jsonBody := []byte(`{"Msg": "Hello from client"}`)
+		bodyReader := bytes.NewReader(jsonBody)
+		req, err := http.NewRequest(http.MethodPost, "http://localhost:3000", bodyReader)
 		if err != nil {
-			panic(err)
+			return err
 		}
-		var str string
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			fmt.Println("fucked")
-		}
-		if err := json.Unmarshal(body, &str); err != nil {
-			fmt.Println("msg from server:", str)
-			return response{HttpStatusCode: res.StatusCode, Msg: string(body)}
-		}
-		return "error"
+		return req
 	}
 }
 
@@ -79,7 +68,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.isInputDone = true
 				return m, tea.Batch(
 					spinner.Tick,
-					m.connectToServer(),
+					m.postToServer(),
 				)
 			}
 		}
@@ -104,7 +93,7 @@ func (m model) View() string {
 	}
 	s += fmt.Sprintf("%s %s connecting to %s\n", m.spinner.View(), m.username, m.ircChatroomName)
 	s += "Press d to disconnect"
-	if m.resp.HttpStatusCode != 0 {
+	if m.resp.Msg != "" {
 		return fmt.Sprintf("Response from server: %s\n", m.resp.Msg)
 	}
 	return s
