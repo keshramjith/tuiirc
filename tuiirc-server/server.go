@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -21,7 +23,8 @@ func main() {
 		return c.SendString(string(jsonx))
 	})
 
-	app.Post("/", func(c *fiber.Ctx) error {
+	app.Post("/woop", func(c *fiber.Ctx) error {
+		fmt.Println("Received POST request")
 		msgFromClient := struct {
 			Msg string `json:"Msg"`
 		}{}

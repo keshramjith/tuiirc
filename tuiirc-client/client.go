@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -21,7 +22,7 @@ type model struct {
 	answerField     textinput.Model
 	spinner         spinner.Model
 	isInputDone     bool
-	resp            response
+	Resp            string
 }
 
 func New() *model {
@@ -40,12 +41,19 @@ func (m model) Init() tea.Cmd {
 func (m model) postToServer() tea.Cmd {
 	return func() tea.Msg {
 		jsonBody := []byte(`{"Msg": "Hello from client"}`)
-		bodyReader := bytes.NewReader(jsonBody)
-		req, err := http.NewRequest(http.MethodPost, "http://localhost:3000", bodyReader)
+		requestBody := bytes.NewReader(jsonBody)
+		resp, err := http.Post("http://localhost:3000/woop", "application/json", requestBody)
 		if err != nil {
 			return err
 		}
-		return req
+		fmt.Println("Request made")
+
+		content, err := ioutil.ReadAll(resp.Body)
+		strBody := string(content)
+		m.Resp = strBody
+
+		defer resp.Body.Close()
+		return strBody
 	}
 }
 
@@ -72,9 +80,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				)
 			}
 		}
-	case response:
-		m.resp = msg
-		return m, nil
+	case string:
+		m.Resp = msg
+		return m, spinner.Tick
 	}
 	m.answerField, cmd = m.answerField.Update(msg)
 	m.spinner, cmd = m.spinner.Update(msg)
@@ -93,8 +101,8 @@ func (m model) View() string {
 	}
 	s += fmt.Sprintf("%s %s connecting to %s\n", m.spinner.View(), m.username, m.ircChatroomName)
 	s += "Press d to disconnect"
-	if m.resp.Msg != "" {
-		return fmt.Sprintf("Response from server: %s\n", m.resp.Msg)
+	if m.Resp != "" {
+		return fmt.Sprintf("Response from server: %s\n", m.Resp)
 	}
 	return s
 }
